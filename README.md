@@ -1,8 +1,10 @@
 -=(Poseidon notes)=-
 
+6* amplification has been applied to SOUND_L and SOUND_R respectively.
 
- 
- # BK0011M for [MIST Board](https://github.com/mist-devel/mist-board/wiki)
+Covox is not implemented yet, only PSG works.
+
+# BK0011M for [MIST Board](https://github.com/mist-devel/mist-board/wiki)
 
 This project of [popular USSR home computer](https://en.wikipedia.org/wiki/Electronika_BK) is based on precise [KR1801VM1](http://zx-pk.ru/showthread.php?t=23978) Verilog model by Vslav
 
