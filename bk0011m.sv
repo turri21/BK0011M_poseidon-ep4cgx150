@@ -479,8 +479,8 @@ i2s i2s (
 	.sclk(I2S_BCK),
 	.lrclk(I2S_LRCK),
 	.sdata(I2S_DATA),
-	.left_chan({covox_enable ? {1'b0, out_port_data[7:0],  1'b0} + {2'b00, spk_out, 5'b00000} : SOUND_L, 5'd0}),
-	.right_chan({covox_enable ? {1'b0, out_port_data[15:8], 1'b0} + {2'b00, spk_out, 5'b00000} : SOUND_R, 5'd0})
+	.left_chan({covox_enable ? {1'b0, out_port_data[7:0],  1'b0} + {2'b00, spk_out, 5'b00000} : SOUND_L, 4'd0}),
+	.right_chan({covox_enable ? {1'b0, out_port_data[15:8], 1'b0} + {2'b00, spk_out, 5'b00000} : SOUND_R, 4'd0})
 );
 
 // COVOX
