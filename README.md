@@ -1,8 +1,5 @@
 -=(Poseidon notes)=-
 
-6* amplification has been applied to SOUND_L and SOUND_R respectively.
-
-Covox is not implemented yet, only PSG works.
 
 # BK0011M for [MIST Board](https://github.com/mist-devel/mist-board/wiki)
 
