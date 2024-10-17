@@ -422,8 +422,8 @@ wire [7:0] channel_a;
 wire [7:0] channel_b;
 wire [7:0] channel_c;
 wire [5:0] psg_active;
-wire [15:0] SOUND_L; // 16-bit wide wire for left audio channel
-wire [15:0] SOUND_R; // 16-bit wide wire for right audio channel
+wire [9:0] SOUND_L; // 9-bit wide wire for left audio channel
+wire [9:0] SOUND_R; // 9-bit wide wire for right audio channel
 
 always @(posedge clk_sys) begin
 	reg old_write;
