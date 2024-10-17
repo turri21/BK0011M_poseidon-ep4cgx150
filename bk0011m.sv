@@ -148,6 +148,8 @@ localparam CONF_STR =
 	"O78,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%;",
 	"O1,CPU Speed,3MHz/4MHz,6MHz/8MHz;",
 	"O56,Model,BK0011M & DSK,BK0010 & DSK,BK0011M,BK0010;",
+	"OA,Sound mode,PSG,Covox;",
+	"-;",
 	"T2,Reset & Unload Disk;",
 	"V,v2.50.",`BUILD_DATE
 };
@@ -416,6 +418,13 @@ end
 
 /////////////////////////////   AUDIO   ///////////////////////////////
 reg [2:0] spk_out;
+wire [7:0] channel_a;
+wire [7:0] channel_b;
+wire [7:0] channel_c;
+wire [5:0] psg_active;
+wire [15:0] SOUND_L; // 16-bit wide wire for left audio channel
+wire [15:0] SOUND_R; // 16-bit wide wire for right audio channel
+
 always @(posedge clk_sys) begin
 	reg old_write;
 	old_write <= sysreg_write;
@@ -424,13 +433,28 @@ always @(posedge clk_sys) begin
 	end
 end
 
-wire [7:0] channel_a;
-wire [7:0] channel_b;
-wire [7:0] channel_c;
-wire [5:0] psg_active;
-wire [15:0] SOUND_L; // 16-bit wide wire for left audio channel
-wire [15:0] SOUND_R; // 16-bit wide wire for right audio channel
+assign SOUND_L = (psg_active ? ({1'b0, channel_a, 1'b0} + {2'b00, channel_b} + {2'b00, spk_out, 5'b00000}) : {spk_out, 7'b0000000});
+assign SOUND_R = (psg_active ? ({1'b0, channel_c, 1'b0} + {2'b00, channel_b} + {2'b00, spk_out, 5'b00000}) : {spk_out, 7'b0000000});
 
+//Amplified
+//assign SOUND_L = (psg_active ? ({1'b0, channel_a, 1'b0} + {2'b00, channel_b} + {2'b00, spk_out, 5'b00000}) * 6 : {spk_out, 7'b0000000} * 6);
+//assign SOUND_R = (psg_active ? ({1'b0, channel_c, 1'b0} + {2'b00, channel_b} + {2'b00, spk_out, 5'b00000}) * 6 : {spk_out, 7'b0000000} * 6);
+
+sigma_delta_dac #(.MSBI(9)) dac_l
+(
+	.CLK(clk_sys),
+	.RESET(bus_reset),
+	.DACin(SOUND_L),
+	.DACout(AUDIO_L)
+);
+
+sigma_delta_dac #(.MSBI(9)) dac_r
+(
+	.CLK(clk_sys),
+	.RESET(bus_reset),
+	.DACin(SOUND_R),
+	.DACout(AUDIO_R)
+);
 
 ym2149 psg
 (
@@ -448,25 +472,6 @@ ym2149 psg
 	.MODE(0)
 );
 
-assign SOUND_L = (psg_active ? ({1'b0, channel_a, 1'b0} + {2'b00, channel_b} + {2'b00, spk_out, 5'b00000}) * 6 : {spk_out, 7'b0000000} * 6);
-assign SOUND_R = (psg_active ? ({1'b0, channel_c, 1'b0} + {2'b00, channel_b} + {2'b00, spk_out, 5'b00000}) * 6 : {spk_out, 7'b0000000} * 6);
-
-//sigma_delta_dac #(.MSBI(9)) dac_l
-//(
-//	.CLK(clk_sys),
-//	.RESET(bus_reset),
-//	.DACin(psg_active ? {1'b0, channel_a, 1'b0} + {2'b00, channel_b} + {2'b00, spk_out, 5'b00000} : {spk_out, 7'b0000000}),
-//	.DACout(AUDIO_L)
-//);
-//
-//sigma_delta_dac #(.MSBI(9)) dac_r
-//(
-//	.CLK(clk_sys),
-//	.RESET(bus_reset),
-//	.DACin(psg_active ? {1'b0, channel_c, 1'b0} + {2'b00, channel_b} + {2'b00, spk_out, 5'b00000} : {spk_out, 7'b0000000}),
-//	.DACout(AUDIO_R)
-//);
-
 i2s i2s (
 	.reset(bus_reset),
 	.clk(clk_sys),
@@ -474,12 +479,25 @@ i2s i2s (
 	.sclk(I2S_BCK),
 	.lrclk(I2S_LRCK),
 	.sdata(I2S_DATA),
-	.left_chan(SOUND_L),
-	.right_chan(SOUND_R)
+   .left_chan({covox_enable ? {1'b0, out_port_data[7:0],  1'b0} + {2'b00, spk_out, 5'b00000} : SOUND_L, 4'd0}),
+   .right_chan({covox_enable ? {1'b0, out_port_data[15:8], 1'b0} + {2'b00, spk_out, 5'b00000} : SOUND_R, 4'd0})
 );
 
-assign AUDIO_L = SOUND_L;
-assign AUDIO_R = SOUND_R;
+// COVOX
+wire covox_enable = status[10];
+reg [15:0] out_port_data;
+
+always @(posedge clk_sys) begin
+	reg old_write;
+	old_write <= port_write;
+	if (~old_write & port_write) begin
+		if (bus_wtbt[0])
+			out_port_data[7:0]  <= cpu_dout[7:0];
+		if (bus_wtbt[1])
+			out_port_data[15:8] <= cpu_dout[15:8];
+	end
+end
+
 
 /////////////////////////////   VIDEO   ///////////////////////////////
 wire [15:0]	scrreg_data;
